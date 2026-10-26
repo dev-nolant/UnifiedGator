@@ -1,15 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase
-from dataclasses import dataclass
-
-class Base(DeclarativeBase):
-    pass
+from pydantic import BaseModel
 
 
-# todo: user, project, member, task, message, activity
-# class to hold profile information to create user. dataclass
-@dataclass
-class Profile:
+class Profile(BaseModel):
     id: str
     email: str
     display_name: str
-

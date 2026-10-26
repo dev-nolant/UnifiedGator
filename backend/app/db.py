@@ -1,24 +1,11 @@
-import os
+from functools import cache
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from supabase import create_client, Client
+from supabase import Client, create_client
 
-# railway/supabase hand us this
-engine = create_engine(os.environ.get("DATABASE_URL", "sqlite:///./dev.db"))
-Session = sessionmaker(engine)
+from app.config import settings
 
 
-def get_db():
-    with Session() as db:
-        yield db
-
-# get the new client to create
+# one client for the whole app, settings blows up on startup if the env vars are missing
+@cache
 def get_client() -> Client:
-    # Ref: https://supabase.com/docs/reference/python/initializing
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_KEY")
-    supabase: Client = create_client(url, key)
-    return supabase
-
-
+    return create_client(settings.supabase_url, settings.supabase_key)
