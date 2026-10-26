@@ -56,3 +56,22 @@ create trigger project_owner
 
 alter table projects enable row level security;
 alter table members enable row level security;
+
+create type task_status as enum ('todo', 'in_progress', 'done');
+
+create table tasks (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects on delete cascade,
+  title text not null,
+  description text not null default '',
+  status task_status not null default 'todo',
+  due_date date,
+  assignee_id uuid references profiles on delete set null,
+  created_by uuid references profiles on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index on tasks (project_id);
+
+alter table tasks enable row level security;

@@ -49,6 +49,8 @@ def get_project(m: dict = Depends(membership)):
         .eq("id", m["project_id"])
         .single().execute().data
     )
+    statuses = [t["status"] for t in get_client().table("tasks").select("status").eq("project_id", m["project_id"]).execute().data]
+    project["progress"] = {s: statuses.count(s) for s in ("todo", "in_progress", "done")}
     project["my_role"] = m["role"]
     return project
 
