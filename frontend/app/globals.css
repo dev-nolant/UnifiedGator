@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+@theme {
+  --color-uf-blue: #0021a5;
+  --color-uf-orange: #fa4616;
+}

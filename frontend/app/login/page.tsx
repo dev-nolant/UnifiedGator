@@ -32,7 +32,7 @@ export default function Login() {
 
   return (
     <main className="mx-auto mt-24 max-w-sm px-4">
-      <h1 className="mb-6 text-3xl font-bold text-green-700">Unified Gator</h1>
+      <h1 className="mb-6 border-b-4 border-uf-orange pb-2 text-3xl font-bold text-uf-blue">Unified Gator</h1>
 
       <form onSubmit={submit} className="flex flex-col gap-3">
         {signingUp && (
@@ -63,9 +63,9 @@ export default function Login() {
         />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {note && <p className="text-sm text-green-700">{note}</p>}
+        {note && <p className="text-sm text-uf-blue">{note}</p>}
 
-        <button disabled={busy} className="rounded bg-green-700 p-2 text-white disabled:opacity-50">
+        <button disabled={busy} className="rounded bg-uf-blue p-2 text-white disabled:opacity-50">
           {busy ? "..." : signingUp ? "Sign up" : "Log in"}
         </button>
       </form>
