@@ -1,16 +1,19 @@
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from supabase_auth.errors import AuthError
+
 from app.db import get_client
 
-
-# todo: verify the supabase jwt and hand back the user
-def current_user():
-    raise NotImplementedError
+bearer = HTTPBearer()
 
 
-# Ref: https://supabase.com/docs/reference/python/auth-admin-createuser
-def create_login(email: str, password: str) -> str:
-    created_user = get_client().auth.admin.create_user({
-        "email": email,
-        "password": password,
-        "email_confirm": True,
-    })
-    return created_user.user.id
+# Ref: https://supabase.com/docs/reference/python/auth-getclaims
+def current_user(creds: HTTPAuthorizationCredentials = Depends(bearer)) -> dict:
+    try:
+        res = get_client().auth.get_claims(creds.credentials)
+    except AuthError:
+        raise HTTPException(401, "invalid token")
+
+    if not res or not res["claims"].get("sub"):
+        raise HTTPException(401, "invalid token")
+    return {"id": res["claims"]["sub"], "email": res["claims"].get("email")}
