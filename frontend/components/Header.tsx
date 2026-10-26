@@ -13,8 +13,8 @@ export default function Header() {
   }
 
   return (
-    <header className="flex items-center justify-between border-b px-6 py-3">
-      <Link href="/dashboard" className="text-xl font-bold text-green-700">
+    <header className="flex items-center justify-between border-b-4 border-uf-orange px-6 py-3">
+      <Link href="/dashboard" className="text-xl font-bold text-uf-blue">
         Unified Gator
       </Link>
       <button onClick={logout} className="text-sm text-gray-600 hover:underline">
