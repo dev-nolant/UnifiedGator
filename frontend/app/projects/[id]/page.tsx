@@ -1,153 +1,137 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "../../../lib/api";
+import Header from "@/components/Header";
+import Tasks from "@/components/Tasks";
+import { api } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
-type Member = {
-  role: string;
-  user?: { id: string; email?: string; display_name?: string };
-};
+type User = { id: string; email: string; display_name: string | null };
+type Member = { role: "owner" | "member"; user: User };
 type Project = {
   id: string;
   name: string;
   description: string;
   due_date: string | null;
-  my_role?: string;
-  members?: Member[];
-};
-type Task = {
-  id: string;
-  title?: string;
-  name?: string;
-  description?: string;
-  status?: string;
-  due_date?: string | null;
-  deadline?: string | null;
+  members: Member[];
+  progress: { todo: number; in_progress: number; done: number };
+  my_role: "owner" | "member";
 };
 
-function readableDate(value?: string | null) {
-  if (!value) return "No due date";
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
+const who = (u?: User) => (u ? u.display_name || u.email : "nobody");
 
 export default function ProjectPage() {
-  const params = useParams<{ id: string }>();
-  const projectId = params.id;
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
-  const loadProject = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const projectData = await api<Project>(`/projects/${encodeURIComponent(projectId)}`);
-      setProject(projectData);
-      try {
-        const taskData = await api<Task[]>(`/tasks?project_id=${encodeURIComponent(projectId)}`);
-        setTasks(Array.isArray(taskData) ? taskData : []);
-      } catch {
-        setTasks([]);
-      }
-    } catch (err) {
-      setProject(null);
-      setError(
-        err instanceof Error && err.message.includes("404")
-          ? "This project doesn't exist, or you don't have access to it."
-          : err instanceof Error ? err.message : "Could not load this project.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+  const load = useCallback(() => {
+    api<Project>(`/projects/${id}`).then(setProject).catch((e) => setError(e.message));
+  }, [id]);
 
   useEffect(() => {
-    void loadProject();
-  }, [loadProject]);
+    load();
+    supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? ""));
+  }, [load]);
 
-  if (loading) {
-    return <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-600"><div className="mx-auto max-w-5xl">Loading project...</div></main>;
+  async function run(fn: () => Promise<unknown>) {
+    setError("");
+    try {
+      await fn();
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
+  function addMember(e: React.FormEvent) {
+    e.preventDefault();
+    run(async () => {
+      await api(`/projects/${id}/members`, { method: "POST", body: JSON.stringify({ email }) });
+      setEmail("");
+    });
+  }
+
+  async function removeMember(userId: string) {
+    await run(() => api(`/projects/${id}/members/${userId}`, { method: "DELETE" }));
+    if (userId === me) router.push("/dashboard");
   }
 
   if (!project) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900">
-        <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold">Project unavailable</h1>
-          <p role="alert" className="mt-3 text-slate-600">{error || "This project could not be found."}</p>
-          <Link href="/dashboard" className="mt-6 inline-block font-semibold text-blue-700 hover:underline">Return to projects</Link>
-        </section>
-      </main>
+      <>
+        <Header />
+        <p className="p-6 text-gray-500">{error || "loading..."}</p>
+      </>
     );
   }
 
-  const members = project.members ?? [];
   const owner = project.my_role === "owner";
+  const { todo, in_progress, done } = project.progress;
+  const total = todo + in_progress + done;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/dashboard" className="text-sm font-medium text-blue-700 hover:underline">← All projects</Link>
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-800">{owner ? "Project owner" : "Team member"}</span>
-        </div>
+    <>
+      <Header />
+      <main className="mx-auto max-w-4xl p-6">
+        <h1 className="text-2xl font-semibold">{project.name}</h1>
+        {project.description && <p className="text-gray-600">{project.description}</p>}
+        <p className="text-sm text-gray-500">{project.due_date ? `due ${project.due_date}` : "no due date"}</p>
+        {error && <p className="mt-2 text-red-600">{error}</p>}
 
-        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Project workspace</p>
-          <h1 className="mt-2 break-words text-3xl font-bold sm:text-4xl">{project.name}</h1>
-          <p className="mt-3 whitespace-pre-wrap text-slate-600">{project.description || "No project description yet."}</p>
-          <div className="mt-6 flex flex-wrap gap-6 border-t border-slate-100 pt-5 text-sm">
-            <div><p className="text-slate-500">Due date</p><p className="mt-1 font-semibold">{readableDate(project.due_date)}</p></div>
-            <div><p className="text-slate-500">Team members</p><p className="mt-1 font-semibold">{members.length}</p></div>
-            <div><p className="text-slate-500">Tasks loaded</p><p className="mt-1 font-semibold">{tasks.length}</p></div>
+        <section className="mt-6">
+          <p className="mb-1 text-sm text-gray-600">
+            {done}/{total} tasks done, {in_progress} in progress
+          </p>
+          <div className="h-2 rounded bg-gray-200">
+            <div className="h-2 rounded bg-uf-orange" style={{ width: total ? `${(done / total) * 100}%` : 0 }} />
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">Team</h2><span className="text-sm text-slate-500">{members.length} members</span></div>
-            {members.length ? (
-              <ul className="mt-4 divide-y divide-slate-100">
-                {members.map((member, index) => (
-                  <li key={member.user?.id ?? index} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{member.user?.display_name || member.user?.email || "Project member"}</p>
-                      {member.user?.display_name && member.user?.email && <p className="truncate text-sm text-slate-500">{member.user.email}</p>}
-                    </div>
-                    <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs capitalize text-slate-700">{member.role}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="mt-4 text-sm text-slate-600">Member details will appear here when available.</p>}
-          </section>
+        <section className="mt-8">
+          <h2 className="mb-2 text-lg font-semibold">Members</h2>
+          <ul className="divide-y rounded border">
+            {project.members.map((m) => (
+              <li key={m.user.id} className="flex items-center justify-between p-2">
+                <span>
+                  {who(m.user)} {m.role === "owner" && <span className="text-xs text-uf-blue">owner</span>}
+                </span>
+                {m.role !== "owner" && (owner || m.user.id === me) && (
+                  <button onClick={() => removeMember(m.user.id)} className="text-sm text-red-600 hover:underline">
+                    {m.user.id === me ? "leave" : "remove"}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold">Tasks</h2>
-            {tasks.length ? (
-              <ul className="mt-4 divide-y divide-slate-100">
-                {tasks.map((task) => (
-                  <li key={task.id} className="py-3">
-                    <p className="font-medium">{task.title || task.name || "Untitled task"}</p>
-                    {task.description && <p className="mt-1 text-sm text-slate-600">{task.description}</p>}
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      {task.status && <span className="rounded-full bg-blue-50 px-2.5 py-1 capitalize text-blue-800">{task.status.replaceAll("_", " ")}</span>}
-                      {(task.due_date || task.deadline) && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">Due {readableDate(task.due_date || task.deadline)}</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="mt-4 text-sm text-slate-600">No tasks to show yet, or the tasks endpoint isn't available yet.</p>}
-          </section>
-        </div>
+          {owner && (
+            <form onSubmit={addMember} className="mt-2 flex gap-2">
+              <input
+                className="flex-1 rounded border p-2"
+                type="email"
+                placeholder="teammate's email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <button className="rounded bg-uf-blue px-4 text-white">Add</button>
+            </form>
+          )}
+        </section>
 
-        <p className="mt-5 text-xs text-slate-500">The backend checks project membership before returning private project details.</p>
-      </div>
-    </main>
+        <Tasks
+          projectId={id}
+          people={project.members.map((m) => ({ id: m.user.id, name: who(m.user) }))}
+          me={me}
+          owner={owner}
+          onChange={load}
+        />
+      </main>
+    </>
   );
 }
