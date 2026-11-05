@@ -68,6 +68,20 @@ export default function Tasks(props: { projectId: string; people: Person[]; me: 
 
   const nameOf = (id: string | null) => people.find((p) => p.id === id)?.name ?? "unassigned";
 
+const isOverdue = (task: Task) => {
+  if (!task.due_date || task.status === "done") {
+    return false;
+  }
+
+  const today = new Date();
+  const localDate =
+    today.getFullYear() + "-" +
+    String(today.getMonth() + 1).padStart(2, "0") + "-" +
+    String(today.getDate()).padStart(2, "0");
+
+  return task.due_date.slice(0, 10) < localDate;
+};
+
   return (
     <section className="mt-8">
       <h2 className="mb-2 text-lg font-semibold">Tasks</h2>
@@ -115,7 +129,15 @@ export default function Tasks(props: { projectId: string; people: Person[]; me: 
                   onDragStart={(e) => e.dataTransfer.setData("text/plain", t.id)}
                   className="mb-2 cursor-grab rounded border bg-white p-2 text-sm"
                 >
-                  <p className="font-medium">{t.title}</p>
+                  <div className="flex items-center gap-2">
+  <p className="font-medium">{t.title}</p>
+
+  {isOverdue(t) && (
+    <span className="rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">
+      Overdue
+    </span>
+  )}
+</div>
                   <p className="text-xs text-gray-500">
                     {nameOf(t.assignee_id)}
                     {t.due_date && `, due ${t.due_date}`}
