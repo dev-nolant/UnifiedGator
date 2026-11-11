@@ -1,6 +1,20 @@
 @import "tailwindcss";
 
 @theme {
+  /* default theme to UF blue and orange */
   --color-uf-blue: #0021a5;
   --color-uf-orange: #fa4616;
+}
+
+/* Additional themes */
+[data-theme="forest"] {
+  /* Swap uf-blue and uf-orange with forest colors */
+  --color-uf-blue: #166534;
+  --color-uf-orange: #65a30d;
+}
+
+[data-theme="ocean"] {
+  /* Swap uf-blue and uf-orange with ocean colors */
+  --color-uf-blue: #0c4a6e;
+  --color-uf-orange: #0f766e;
 }
