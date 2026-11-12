@@ -9,12 +9,12 @@
 /* Additional themes */
 [data-theme="forest"] {
   /* Swap uf-blue and uf-orange with forest colors */
-  --color-uf-blue: #166534;
-  --color-uf-orange: #65a30d;
+  --color-uf-blue: #228B22;
+  --color-uf-orange: #378F5B;
 }
 
 [data-theme="ocean"] {
   /* Swap uf-blue and uf-orange with ocean colors */
-  --color-uf-blue: #0c4a6e;
-  --color-uf-orange: #0f766e;
+  --color-uf-blue: #0077BE;
+  --color-uf-orange: #003C5F;
 }
