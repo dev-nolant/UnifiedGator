@@ -23,7 +23,7 @@ def my_profile(user: dict = Depends(current_user)):
 # body is ProfileEdit json sent
 def edit_profile(body: ProfileEdit, user: dict = Depends(current_user)):
     # fields included in the request, display_name kept if theme changes
-    updates = body.model_dump(exclude_unset=True)
+    updates = body.model_dump(exclude_unset=True, exclude_none=True)
     # if there are no updates to fields
     if not updates:
         raise HTTPException(status_code=400, detail="No Updates")
