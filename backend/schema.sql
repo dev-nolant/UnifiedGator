@@ -3,7 +3,7 @@ create table profiles (
   email text not null unique,
   display_name text,
   -- adding themes gator as default, forest, and ocean
-  alter table profiles add column theme text not null default 'gator' check (theme in ('gator', 'forest', 'ocean')),
+  theme text not null default 'gator' check (theme in ('gator', 'forest', 'ocean')),
   created_at timestamptz not null default now()
 );
 
