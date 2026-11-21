@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Tasks from "@/components/Tasks";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import TeamChat from "@/components/TeamChat";
 
 type User = { id: string; email: string; display_name: string | null };
 type Member = { role: "owner" | "member"; user: User };
@@ -131,6 +132,8 @@ export default function ProjectPage() {
           owner={owner}
           onChange={load}
         />
+
+        <TeamChat projectId={id} />
       </main>
     </>
   );

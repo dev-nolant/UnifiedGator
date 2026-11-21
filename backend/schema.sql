@@ -77,3 +77,16 @@ create table tasks (
 create index on tasks (project_id);
 
 alter table tasks enable row level security;
+
+create table public.project_messages (
+    id uuid primary key default gen_random_uuid(),
+    project_id uuid not null references public.projects(id) on delete cascade,
+    sender_id uuid not null references public.profiles(id) on delete cascade,
+    content text not null check (char_length(content) between 1 and 2000),
+    created_at timestamptz not null default now()
+);
+
+create index project_messages_project_created_idx
+on public.project_messages (project_id, created_at);
+
+alter table public.project_messages enable row level security;
